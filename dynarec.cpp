@@ -73,32 +73,64 @@ public:
 
 class Emitter {
 	u8* _code;
-	size_t _size;
-	size_t _index;
-	size_t _start;
+	size_t _code_size;
+	size_t _code_index;
+	size_t _instruction_start;
 
 	void assure_code_buffer_size(size_t additional_size) throw(EmitterException) {
-		if(_index + additional_size >= _size) {
+		if(_code_index + additional_size >= _code_size) {
 			stringstream out;
 			out << "Code buffer ran out of space.";
-			out << " Needs to be " << _size + additional_size << " bytes.";
-			out << " But is only " << _size << " bytes." << endl;
+			out << " Needs to be " << _code_size + additional_size << " bytes.";
+			out << " But is only " << _code_size << " bytes." << endl;
 			throw EmitterException(out.str());
 		}
+	}
+
+	void instruction_start() {
+		_instruction_start = _code_index;
+	}
+
+	size_t instruction_size() {
+		return _code_index - _instruction_start;
+	}
+
+	void emit8(u8 byte) throw(EmitterException) {
+		assure_code_buffer_size(1);
+
+		u8* code8 = _code + _code_index;
+		*code8 = byte;
+		_code_index++;
+	}
+
+	void emit16(u16 word) throw(EmitterException) {
+		assure_code_buffer_size(2);
+
+		u16* code16 = (u16*) (_code + _code_index);
+		*code16 = word;
+		_code_index += 2;
+	}
+
+	void emit32(u32 dword) throw(EmitterException) {
+		assure_code_buffer_size(4);
+
+		u32* code32 = (u32*) (_code + _code_index);
+		*code32 = dword;
+		_code_index += 4;
 	}
 
 public:
 	Emitter(size_t code_size) :
 		_code(NULL),
-		_size(code_size),
-		_index(0),
-		_start(0) {
+		_code_size(code_size),
+		_code_index(0),
+		_instruction_start(0) {
 
 		// Allocate memory to hold the code. The mmap function is needed 
 		// to give us permission to run code from inside the code block.
 		_code = (u8*) mmap(
 					NULL,
-					_size,
+					_code_size,
 					PROT_EXEC | PROT_READ | PROT_WRITE,
 					MAP_PRIVATE | MAP_ANONYMOUS,
 					0,
@@ -107,44 +139,9 @@ public:
 
 	~Emitter() {
 		if(_code != NULL) {
-			munmap(_code, _size);
+			munmap(_code, _code_size);
 			_code = NULL;
 		}
-	}
-
-	void instruction_start() {
-		_start = _index;
-	}
-
-	size_t instruction_size() {
-		return _index - _start;
-	}
-
-	void emit8(u8 byte) throw(EmitterException) {
-		assure_code_buffer_size(1);
-
-		u8* code8 = _code + _index;
-		*code8 = byte;
-//		cout << "_code[" << _index << "] = 0x" << hex << (u32) *code8 << endl;
-		_index++;
-	}
-
-	void emit16(u16 word) throw(EmitterException) {
-		assure_code_buffer_size(2);
-
-		u16* code16 = (u16*) (_code + _index);
-		*code16 = word;
-//		cout << "_code[" << _index << "] = 0x" << hex << (u32) *code16 << endl;
-		_index += 2;
-	}
-
-	void emit32(u32 dword) throw(EmitterException) {
-		assure_code_buffer_size(4);
-
-		u32* code32 = (u32*) (_code + _index);
-		*code32 = dword;
-//		cout << "_code[" << _index << "] = 0x" << hex << (u32) *code32 << endl;
-		_index += 4;
 	}
 
 	void push(Register reg) throw(EmitterException) {
@@ -219,6 +216,7 @@ public:
 		emit8(0x66);
 		emit8(code);
 		emit8(value); emit8(0x00); emit8(0x00); emit8(0x00);
+
 		instruction_print();
 		cout << "   mov " << reg_name(reg) << " " << value << endl;
 	}
@@ -233,14 +231,16 @@ public:
 
 	void instruction_print() {
 		size_t size = instruction_size();
+		size_t start = _instruction_start;
+		size_t end = _instruction_start + size;
 
-		// Address
-		cout << "0x" << hex << (u32) _start << "   ";
+		// Print Address
+		cout << "0x" << hex << (u32) _instruction_start << "   ";
 
-		// Instruction
-		for(size_t j=_start; j<_start+size; j++) {
-			if(_code[j] <= 0xF) cout << '0';
-			cout << hex << (u32) _code[j];
+		// Print Instruction
+		for(size_t i=start; i<end; i++) {
+			if(_code[i] <= 0xF) cout << '0';
+			cout << hex << (u32) _code[i];
 		}
 	}
 
