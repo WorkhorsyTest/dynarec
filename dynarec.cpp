@@ -3,6 +3,9 @@
 // A simpe example of how to dynamically recompile code,
 // into x86 assembly then run it.
 
+// FIXME: Add a cache that stores the already converted instructions by the source address.
+// Make sure to recompile into blocks and stop at breaks and dynamically changed code.
+
 #include <iostream>
 #include <stdint.h>
 #include <stdlib.h>
@@ -43,13 +46,18 @@ string reg_name(Register reg) {
 		case EDI: return "EDI";
 		case EBP: return "EBP";
 		case ESP: return "ESP";
-		default:
-			return "Unknown";
+		default: return "Unknown";
 	}
 }
 
+union CodePointer {
+	void* code;
+	void (*func)();
+};
+
 class EmitterException : public std::exception {
 	string _message;
+	
 public:
 	EmitterException(string message) : 
 		_message(message) {
@@ -67,6 +75,7 @@ class Emitter {
 	u8* _code;
 	size_t _size;
 	size_t _index;
+	size_t _start;
 
 	void assure_code_buffer_size(size_t additional_size) throw(EmitterException) {
 		if(_index + additional_size >= _size) {
@@ -82,10 +91,11 @@ public:
 	Emitter(size_t code_size) :
 		_code(NULL),
 		_size(code_size),
-		_index(0) {
+		_index(0),
+		_start(0) {
 
-		// Allocate memory to hold the code.
-		// Make to so we have permission to run code in it
+		// Allocate memory to hold the code. The mmap function is needed 
+		// to give us permission to run code from inside the code block.
 		_code = (u8*) mmap(
 					NULL,
 					_size,
@@ -100,6 +110,14 @@ public:
 			munmap(_code, _size);
 			_code = NULL;
 		}
+	}
+
+	void instruction_start() {
+		_start = _index;
+	}
+
+	size_t instruction_size() {
+		return _index - _start;
 	}
 
 	void emit8(u8 byte) throw(EmitterException) {
@@ -130,6 +148,7 @@ public:
 	}
 
 	void push(Register reg) throw(EmitterException) {
+		instruction_start();
 		u8 code = 0;
 
 		switch(reg) {
@@ -143,34 +162,43 @@ public:
 			case ESP: code = 0x54; break;
 			default:
 				stringstream out;
-				out << "Unknown register '" << reg_name(reg) << "'" << endl;
+				out << "Unknown register '" << reg_name(reg) << "' for push." << endl;
 				throw EmitterException(out.str());
 		}
 
 		emit8(0x66);
 		emit8(code);
-		print_code(_index-2, 2);
-		cout << " push " << reg << endl;
+		instruction_print();
+		cout << "   push " << reg_name(reg) << endl;
 	}
 
 	void pop(Register reg) throw(EmitterException) {
+		instruction_start();
 		u8 code = 0;
 
 		switch(reg) {
 			case EAX: code = 0x58; break;
+			case EBX: code = 0x5B; break;
+			case ECX: code = 0x59; break;
+			case EDX: code = 0x5A; break;
+			case ESI: code = 0x5E; break;
+			case EDI: code = 0x5F; break;
+			case EBP: code = 0x5D; break;
+			case ESP: code = 0x5C; break;
 			default:
 				stringstream out;
-				out << "Unknown register '" << reg_name(reg) << "'" << endl;
+				out << "Unknown register '" << reg_name(reg) << "' for pop." << endl;
 				throw EmitterException(out.str());
 		}
 
 		emit8(0x66);
 		emit8(code);
-		print_code(_index-2, 2);
-		cout << " pop " << reg << endl;
+		instruction_print();
+		cout << "   pop " << reg_name(reg) << endl;
 	}
 
 	void mov(Register reg, u8 value) throw(EmitterException) {
+		instruction_start();
 		u8 code = 0;
 
 		switch(reg) {
@@ -182,42 +210,46 @@ public:
 			case EDI: code = 0xBF; break;
 			case EBP: code = 0xBD; break;
 			case ESP: code = 0xBC; break;
+			default:
 				stringstream out;
-				out << "Unknown register '" << reg_name(reg) << "'" << endl;
+				out << "Unknown register '" << reg_name(reg) << "' for mov." << endl;
 				throw EmitterException(out.str());
 		}
 
 		emit8(0x66);
 		emit8(code);
-		emit8(0x00); emit8(0x00); emit8(0x00);
-		print_code(_index-6, 6);
-		cout << " mov " << reg << " " << value << endl;
+		emit8(value); emit8(0x00); emit8(0x00); emit8(0x00);
+		instruction_print();
+		cout << "   mov " << reg_name(reg) << " " << value << endl;
 	}
 
 	void ret() {
+		instruction_start();
+
 		emit8(0xC3);
-		print_code(_index-1, 1);
-		cout << " ret" << endl;
+		instruction_print();
+		cout << "   ret" << endl;
 	}
 
-	void print_code(size_t start, size_t size) {
-		// Address
-		cout << "0x" << hex << (u32) start << "  ";
+	void instruction_print() {
+		size_t size = instruction_size();
 
-		// Opcode
-		for(size_t j=start; j<start+size; j++) {
+		// Address
+		cout << "0x" << hex << (u32) _start << "   ";
+
+		// Instruction
+		for(size_t j=_start; j<_start+size; j++) {
 			if(_code[j] <= 0xF) cout << '0';
 			cout << hex << (u32) _code[j];
 		}
 	}
 
 	void execute() {
-		void (*asm_code)() = (void (*)()) _code;
-		asm_code();
+		CodePointer pointer;
+		pointer.code = _code;
+		pointer.func();
 	}
 };
-
-
 
 
 int main(int argc, char** argv) {
@@ -228,19 +260,24 @@ int main(int argc, char** argv) {
 
 		// Add the code
 		emitter.push(EBX);
-		//emitter.mov(EAX, 0xe);
-		emitter.pop(EAX);
+		emitter.mov(EBX, 0xE);
+		emitter.pop(EBX);
 		emitter.ret();
 
+		// Check the value of the register
+		register u32 before_ebx asm("ebx");
+		cout << "before ebx: " << before_ebx << endl;
+		
 		// Run it
 		emitter.execute();
 
 		// Check the value of the register
-		register u32 eax asm("eax");
-		cout << "eax: " << eax << endl;
+		register u32 after_ebx asm("ebx");
+		cout << "after ebx:  " << after_ebx << endl;
 
 	} catch(EmitterException& e) {
 		cout << e.what() << endl;
+		return -1;
 	}
 
 	return 0;
