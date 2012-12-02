@@ -1,11 +1,12 @@
 
 // Copyright 2012 Matthew Brennan Jones <mattjones@workhorsy.org>
 // A simpe example of how to dynamically recompile code,
-// into x86 assembly then run it.
+// into x86 assembly, then run it.
 
 // FIXME: Add a cache that stores the already converted instructions by the source address.
 // Make sure to recompile into blocks and stop at breaks and dynamically changed code.
-
+// nacl_dyncode_create
+///*
 #include <iostream>
 #include <stdint.h>
 #include <stdlib.h>
@@ -50,9 +51,9 @@ string reg_name(Register reg) {
 	}
 }
 
-union CodePointer {
+union CodeRunner {
 	void* code;
-	void (*func)();
+	void (*call)();
 };
 
 class EmitterException : public std::exception {
@@ -73,21 +74,21 @@ public:
 
 class Emitter {
 	u8* _code;
-	size_t _code_size;
+	const size_t _CODE_SIZE;
 	size_t _code_index;
 	size_t _instruction_start;
 
-	void assure_code_buffer_size(size_t additional_size) throw(EmitterException) {
-		if(_code_index + additional_size >= _code_size) {
+	void assert_code_buffer_free_space(size_t additional_size) throw(EmitterException) {
+		if(_code_index + additional_size >= _CODE_SIZE) {
 			stringstream out;
 			out << "Code buffer ran out of space.";
-			out << " Needs to be " << _code_size + additional_size << " bytes.";
-			out << " But is only " << _code_size << " bytes." << endl;
+			out << " Needs to be " << _CODE_SIZE + additional_size << " bytes.";
+			out << " But is only " << _CODE_SIZE << " bytes." << endl;
 			throw EmitterException(out.str());
 		}
 	}
 
-	void instruction_start() {
+	void reset_instruction_start() {
 		_instruction_start = _code_index;
 	}
 
@@ -96,7 +97,7 @@ class Emitter {
 	}
 
 	void emit8(u8 byte) throw(EmitterException) {
-		assure_code_buffer_size(1);
+		assert_code_buffer_free_space(1);
 
 		u8* code8 = _code + _code_index;
 		*code8 = byte;
@@ -104,7 +105,7 @@ class Emitter {
 	}
 
 	void emit16(u16 word) throw(EmitterException) {
-		assure_code_buffer_size(2);
+		assert_code_buffer_free_space(2);
 
 		u16* code16 = (u16*) (_code + _code_index);
 		*code16 = word;
@@ -112,7 +113,7 @@ class Emitter {
 	}
 
 	void emit32(u32 dword) throw(EmitterException) {
-		assure_code_buffer_size(4);
+		assert_code_buffer_free_space(4);
 
 		u32* code32 = (u32*) (_code + _code_index);
 		*code32 = dword;
@@ -120,9 +121,9 @@ class Emitter {
 	}
 
 public:
-	Emitter(size_t code_size) :
+	Emitter(const size_t code_size) :
 		_code(NULL),
-		_code_size(code_size),
+		_CODE_SIZE(code_size),
 		_code_index(0),
 		_instruction_start(0) {
 
@@ -130,7 +131,7 @@ public:
 		// to give us permission to run code from inside the code block.
 		_code = (u8*) mmap(
 					NULL,
-					_code_size,
+					_CODE_SIZE,
 					PROT_EXEC | PROT_READ | PROT_WRITE,
 					MAP_PRIVATE | MAP_ANONYMOUS,
 					0,
@@ -139,13 +140,13 @@ public:
 
 	~Emitter() {
 		if(_code != NULL) {
-			munmap(_code, _code_size);
+			munmap(_code, _CODE_SIZE);
 			_code = NULL;
 		}
 	}
 
 	void push(Register reg) throw(EmitterException) {
-		instruction_start();
+		reset_instruction_start();
 		u8 code = 0;
 
 		switch(reg) {
@@ -165,12 +166,12 @@ public:
 
 		emit8(0x66);
 		emit8(code);
-		instruction_print();
+		print_instruction();
 		cout << "   push " << reg_name(reg) << endl;
 	}
 
 	void pop(Register reg) throw(EmitterException) {
-		instruction_start();
+		reset_instruction_start();
 		u8 code = 0;
 
 		switch(reg) {
@@ -190,12 +191,12 @@ public:
 
 		emit8(0x66);
 		emit8(code);
-		instruction_print();
+		print_instruction();
 		cout << "   pop " << reg_name(reg) << endl;
 	}
 
 	void mov(Register reg, u8 value) throw(EmitterException) {
-		instruction_start();
+		reset_instruction_start();
 		u8 code = 0;
 
 		switch(reg) {
@@ -217,25 +218,25 @@ public:
 		emit8(code);
 		emit8(value); emit8(0x00); emit8(0x00); emit8(0x00);
 
-		instruction_print();
+		print_instruction();
 		cout << "   mov " << reg_name(reg) << " " << value << endl;
 	}
 
 	void ret() {
-		instruction_start();
+		reset_instruction_start();
 
 		emit8(0xC3);
-		instruction_print();
+		print_instruction();
 		cout << "   ret" << endl;
 	}
 
-	void instruction_print() {
+	void print_instruction() {
 		size_t size = instruction_size();
 		size_t start = _instruction_start;
 		size_t end = _instruction_start + size;
 
 		// Print Address
-		cout << "0x" << hex << (u32) _instruction_start << "   ";
+		cout << "0x" << hex << (u32) start << "   ";
 
 		// Print Instruction
 		for(size_t i=start; i<end; i++) {
@@ -245,9 +246,9 @@ public:
 	}
 
 	void execute() {
-		CodePointer pointer;
-		pointer.code = _code;
-		pointer.func();
+		CodeRunner runner;
+		runner.code = _code;
+		runner.call();
 	}
 };
 
@@ -255,8 +256,8 @@ public:
 int main() {
 	try {
 		// Create the emitter
-		size_t code_size = 255;
-		Emitter emitter(code_size);
+		const size_t CODE_SIZE = 255;
+		Emitter emitter(CODE_SIZE);
 
 		// Add the code
 		emitter.push(EBX);
@@ -265,15 +266,15 @@ int main() {
 		emitter.ret();
 
 		// Check the value of the register
-		register u32 before_ebx asm("ebx");
-		cout << "before ebx: " << before_ebx << endl;
+		register u32 ebx_before asm("ebx");
+		cout << "ebx before: " << ebx_before << endl;
 		
 		// Run it
 		emitter.execute();
 
 		// Check the value of the register
-		register u32 after_ebx asm("ebx");
-		cout << "after ebx:  " << after_ebx << endl;
+		register u32 ebx_after asm("ebx");
+		cout << "ebx after:  " << ebx_after << endl;
 
 	} catch(EmitterException& e) {
 		cout << e.what() << endl;
