@@ -1,7 +1,9 @@
-
-// Copyright 2012 Matthew Brennan Jones <mattjones@workhorsy.org>
-// A simpe example of how to dynamically recompile code,
-// into x86 assembly, then run it.
+/*
+Copyright (c) 2014-2017 Matthew Brennan Jones <matthew.brennan.jones@gmail.com>
+A simpe example of how to dynamically recompile code, into x86 assembly, then run it.
+It uses the MIT License
+https://github.com/WorkhorsyTest/dynarec
+*/
 
 // FIXME: Add a cache that stores the already converted instructions by the source address.
 // Make sure to recompile into blocks and stop at breaks and dynamically changed code.
