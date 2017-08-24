@@ -74,53 +74,6 @@ public:
 };
 
 class Emitter {
-	u8* _code;
-	const size_t _CODE_SIZE;
-	size_t _code_index;
-	size_t _instruction_start;
-
-	void assert_code_buffer_free_space(size_t additional_size) throw(EmitterException) {
-		if (_code_index + additional_size >= _CODE_SIZE) {
-			stringstream out;
-			out << "Code buffer ran out of space.";
-			out << " Needs to be " << _CODE_SIZE + additional_size << " bytes.";
-			out << " But is only " << _CODE_SIZE << " bytes." << endl;
-			throw EmitterException(out.str());
-		}
-	}
-
-	void reset_instruction_start() {
-		_instruction_start = _code_index;
-	}
-
-	size_t instruction_size() {
-		return _code_index - _instruction_start;
-	}
-
-	void emit8(u8 byte) throw(EmitterException) {
-		assert_code_buffer_free_space(1);
-
-		u8* code8 = _code + _code_index;
-		*code8 = byte;
-		_code_index++;
-	}
-
-	void emit16(u16 word) throw(EmitterException) {
-		assert_code_buffer_free_space(2);
-
-		u16* code16 = (u16*) (_code + _code_index);
-		*code16 = word;
-		_code_index += 2;
-	}
-
-	void emit32(u32 dword) throw(EmitterException) {
-		assert_code_buffer_free_space(4);
-
-		u32* code32 = (u32*) (_code + _code_index);
-		*code32 = dword;
-		_code_index += 4;
-	}
-
 public:
 	Emitter(const size_t code_size) :
 		_code(nullptr),
@@ -251,6 +204,54 @@ public:
 		runner.code = _code;
 		runner.call();
 	}
+
+private:
+	void assert_code_buffer_free_space(size_t additional_size) throw(EmitterException) {
+		if (_code_index + additional_size >= _CODE_SIZE) {
+			stringstream out;
+			out << "Code buffer ran out of space.";
+			out << " Needs to be " << _CODE_SIZE + additional_size << " bytes.";
+			out << " But is only " << _CODE_SIZE << " bytes." << endl;
+			throw EmitterException(out.str());
+		}
+	}
+
+	void reset_instruction_start() {
+		_instruction_start = _code_index;
+	}
+
+	size_t instruction_size() {
+		return _code_index - _instruction_start;
+	}
+
+	void emit8(u8 byte) throw(EmitterException) {
+		assert_code_buffer_free_space(1);
+
+		u8* code8 = _code + _code_index;
+		*code8 = byte;
+		_code_index++;
+	}
+
+	void emit16(u16 word) throw(EmitterException) {
+		assert_code_buffer_free_space(2);
+
+		u16* code16 = (u16*) (_code + _code_index);
+		*code16 = word;
+		_code_index += 2;
+	}
+
+	void emit32(u32 dword) throw(EmitterException) {
+		assert_code_buffer_free_space(4);
+
+		u32* code32 = (u32*) (_code + _code_index);
+		*code32 = dword;
+		_code_index += 4;
+	}
+
+	u8* _code;
+	const size_t _CODE_SIZE;
+	size_t _code_index;
+	size_t _instruction_start;
 };
 
 
