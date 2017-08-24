@@ -26,7 +26,7 @@ typedef uint32_t u32;
 typedef int32_t  s32;
 
 
-typedef enum {
+enum class Reg {
 	EAX,
 	EBX,
 	ECX,
@@ -35,19 +35,19 @@ typedef enum {
 	EDI,
 	EBP,
 	ESP
-} Register;
+};
 
 
-string reg_name(Register reg) {
+string reg_name(Reg reg) {
 	switch (reg) {
-		case EAX: return "EAX";
-		case EBX: return "EBX";
-		case ECX: return "ECX";
-		case EDX: return "EDX";
-		case ESI: return "ESI";
-		case EDI: return "EDI";
-		case EBP: return "EBP";
-		case ESP: return "ESP";
+		case Reg::EAX: return "EAX";
+		case Reg::EBX: return "EBX";
+		case Reg::ECX: return "ECX";
+		case Reg::EDX: return "EDX";
+		case Reg::ESI: return "ESI";
+		case Reg::EDI: return "EDI";
+		case Reg::EBP: return "EBP";
+		case Reg::ESP: return "ESP";
 		default: return "Unknown";
 	}
 }
@@ -146,19 +146,19 @@ public:
 		}
 	}
 
-	void push(Register reg) throw(EmitterException) {
+	void push(Reg reg) throw(EmitterException) {
 		reset_instruction_start();
 		u8 code = 0;
 
 		switch (reg) {
-			case EAX: code = 0x50; break;
-			case EBX: code = 0x53; break;
-			case ECX: code = 0x51; break;
-			case EDX: code = 0x52; break;
-			case ESI: code = 0x56; break;
-			case EDI: code = 0x57; break;
-			case EBP: code = 0x55; break;
-			case ESP: code = 0x54; break;
+			case Reg::EAX: code = 0x50; break;
+			case Reg::EBX: code = 0x53; break;
+			case Reg::ECX: code = 0x51; break;
+			case Reg::EDX: code = 0x52; break;
+			case Reg::ESI: code = 0x56; break;
+			case Reg::EDI: code = 0x57; break;
+			case Reg::EBP: code = 0x55; break;
+			case Reg::ESP: code = 0x54; break;
 			default:
 				stringstream out;
 				out << "Unknown register '" << reg_name(reg) << "' for push." << endl;
@@ -171,19 +171,19 @@ public:
 		cout << "   push " << reg_name(reg) << endl;
 	}
 
-	void pop(Register reg) throw(EmitterException) {
+	void pop(Reg reg) throw(EmitterException) {
 		reset_instruction_start();
 		u8 code = 0;
 
 		switch (reg) {
-			case EAX: code = 0x58; break;
-			case EBX: code = 0x5B; break;
-			case ECX: code = 0x59; break;
-			case EDX: code = 0x5A; break;
-			case ESI: code = 0x5E; break;
-			case EDI: code = 0x5F; break;
-			case EBP: code = 0x5D; break;
-			case ESP: code = 0x5C; break;
+			case Reg::EAX: code = 0x58; break;
+			case Reg::EBX: code = 0x5B; break;
+			case Reg::ECX: code = 0x59; break;
+			case Reg::EDX: code = 0x5A; break;
+			case Reg::ESI: code = 0x5E; break;
+			case Reg::EDI: code = 0x5F; break;
+			case Reg::EBP: code = 0x5D; break;
+			case Reg::ESP: code = 0x5C; break;
 			default:
 				stringstream out;
 				out << "Unknown register '" << reg_name(reg) << "' for pop." << endl;
@@ -196,19 +196,19 @@ public:
 		cout << "   pop " << reg_name(reg) << endl;
 	}
 
-	void mov(Register reg, u8 value) throw(EmitterException) {
+	void mov(Reg reg, u8 value) throw(EmitterException) {
 		reset_instruction_start();
 		u8 code = 0;
 
 		switch (reg) {
-			case EAX: code = 0xB8; break;
-			case EBX: code = 0xBB; break;
-			case ECX: code = 0xB9; break;
-			case EDX: code = 0xBA; break;
-			case ESI: code = 0xBE; break;
-			case EDI: code = 0xBF; break;
-			case EBP: code = 0xBD; break;
-			case ESP: code = 0xBC; break;
+			case Reg::EAX: code = 0xB8; break;
+			case Reg::EBX: code = 0xBB; break;
+			case Reg::ECX: code = 0xB9; break;
+			case Reg::EDX: code = 0xBA; break;
+			case Reg::ESI: code = 0xBE; break;
+			case Reg::EDI: code = 0xBF; break;
+			case Reg::EBP: code = 0xBD; break;
+			case Reg::ESP: code = 0xBC; break;
 			default:
 				stringstream out;
 				out << "Unknown register '" << reg_name(reg) << "' for mov." << endl;
@@ -261,9 +261,9 @@ int main() {
 		Emitter emitter(CODE_SIZE);
 
 		// Add the code
-		emitter.push(EBX);
-		emitter.mov(EBX, 0xE);
-		emitter.pop(EBX);
+		emitter.push(Reg::EBX);
+		emitter.mov(Reg::EBX, 0xE);
+		emitter.pop(Reg::EBX);
 		emitter.ret();
 
 		// Check the value of the register
