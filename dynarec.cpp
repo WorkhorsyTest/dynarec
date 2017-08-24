@@ -7,7 +7,6 @@ https://github.com/WorkhorsyTest/dynarec
 
 // FIXME: Add a cache that stores the already converted instructions by the source address.
 // Make sure to recompile into blocks and stop at breaks and dynamically changed code.
-// nacl_dyncode_create
 ///*
 #include <iostream>
 #include <stdint.h>
