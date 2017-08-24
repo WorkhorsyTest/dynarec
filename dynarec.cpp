@@ -39,7 +39,7 @@ typedef enum {
 
 
 string reg_name(Register reg) {
-	switch(reg) {
+	switch (reg) {
 		case EAX: return "EAX";
 		case EBX: return "EBX";
 		case ECX: return "ECX";
@@ -80,7 +80,7 @@ class Emitter {
 	size_t _instruction_start;
 
 	void assert_code_buffer_free_space(size_t additional_size) throw(EmitterException) {
-		if(_code_index + additional_size >= _CODE_SIZE) {
+		if (_code_index + additional_size >= _CODE_SIZE) {
 			stringstream out;
 			out << "Code buffer ran out of space.";
 			out << " Needs to be " << _CODE_SIZE + additional_size << " bytes.";
@@ -140,7 +140,7 @@ public:
 	}
 
 	~Emitter() {
-		if(_code != NULL) {
+		if (_code != NULL) {
 			munmap(_code, _CODE_SIZE);
 			_code = NULL;
 		}
@@ -150,7 +150,7 @@ public:
 		reset_instruction_start();
 		u8 code = 0;
 
-		switch(reg) {
+		switch (reg) {
 			case EAX: code = 0x50; break;
 			case EBX: code = 0x53; break;
 			case ECX: code = 0x51; break;
@@ -175,7 +175,7 @@ public:
 		reset_instruction_start();
 		u8 code = 0;
 
-		switch(reg) {
+		switch (reg) {
 			case EAX: code = 0x58; break;
 			case EBX: code = 0x5B; break;
 			case ECX: code = 0x59; break;
@@ -200,7 +200,7 @@ public:
 		reset_instruction_start();
 		u8 code = 0;
 
-		switch(reg) {
+		switch (reg) {
 			case EAX: code = 0xB8; break;
 			case EBX: code = 0xBB; break;
 			case ECX: code = 0xB9; break;
@@ -277,7 +277,7 @@ int main() {
 		register u32 ebx_after asm("ebx");
 		cout << "ebx after:  " << ebx_after << endl;
 
-	} catch(EmitterException& e) {
+	} catch (EmitterException& e) {
 		cout << e.what() << endl;
 		return -1;
 	}
