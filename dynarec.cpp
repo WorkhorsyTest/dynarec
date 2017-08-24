@@ -14,6 +14,7 @@ https://github.com/WorkhorsyTest/dynarec
 #include <sstream>
 #include <assert.h>
 #include <sys/mman.h>
+#include <map>
 
 
 using namespace std;
@@ -39,17 +40,16 @@ enum class Reg {
 
 
 string reg_name(Reg reg) {
-	switch (reg) {
-		case Reg::EAX: return "EAX";
-		case Reg::EBX: return "EBX";
-		case Reg::ECX: return "ECX";
-		case Reg::EDX: return "EDX";
-		case Reg::ESI: return "ESI";
-		case Reg::EDI: return "EDI";
-		case Reg::EBP: return "EBP";
-		case Reg::ESP: return "ESP";
-		default: return "Unknown";
-	}
+	return std::map<Reg, string>({
+		{ Reg::EAX, "EAX" },
+		{ Reg::EBX, "EBX" },
+		{ Reg::ECX, "ECX" },
+		{ Reg::EDX, "EDX" },
+		{ Reg::ESI, "ESI" },
+		{ Reg::EDI, "EDI" },
+		{ Reg::EBP, "EBP" },
+		{ Reg::ESP, "ESP" },
+	}).at(reg);
 }
 
 union CodeRunner {
@@ -101,22 +101,17 @@ public:
 
 	void push(Reg reg) throw(EmitterException) {
 		reset_instruction_start();
-		u8 code = 0;
 
-		switch (reg) {
-			case Reg::EAX: code = 0x50; break;
-			case Reg::EBX: code = 0x53; break;
-			case Reg::ECX: code = 0x51; break;
-			case Reg::EDX: code = 0x52; break;
-			case Reg::ESI: code = 0x56; break;
-			case Reg::EDI: code = 0x57; break;
-			case Reg::EBP: code = 0x55; break;
-			case Reg::ESP: code = 0x54; break;
-			default:
-				stringstream out;
-				out << "Unknown register '" << reg_name(reg) << "' for push." << endl;
-				throw EmitterException(out.str());
-		}
+		const u8 code = std::map<Reg, u8>({
+			{ Reg::EAX, 0x50 },
+			{ Reg::EBX, 0x53 },
+			{ Reg::ECX, 0x51 },
+			{ Reg::EDX, 0x52 },
+			{ Reg::ESI, 0x56 },
+			{ Reg::EDI, 0x57 },
+			{ Reg::EBP, 0x55 },
+			{ Reg::ESP, 0x54 },
+		}).at(reg);
 
 		emit8(0x66);
 		emit8(code);
@@ -126,22 +121,17 @@ public:
 
 	void pop(Reg reg) throw(EmitterException) {
 		reset_instruction_start();
-		u8 code = 0;
 
-		switch (reg) {
-			case Reg::EAX: code = 0x58; break;
-			case Reg::EBX: code = 0x5B; break;
-			case Reg::ECX: code = 0x59; break;
-			case Reg::EDX: code = 0x5A; break;
-			case Reg::ESI: code = 0x5E; break;
-			case Reg::EDI: code = 0x5F; break;
-			case Reg::EBP: code = 0x5D; break;
-			case Reg::ESP: code = 0x5C; break;
-			default:
-				stringstream out;
-				out << "Unknown register '" << reg_name(reg) << "' for pop." << endl;
-				throw EmitterException(out.str());
-		}
+		const u8 code = std::map<Reg, u8>({
+			{ Reg::EAX, 0x58 },
+			{ Reg::EBX, 0x5B },
+			{ Reg::ECX, 0x59 },
+			{ Reg::EDX, 0x5A },
+			{ Reg::ESI, 0x5E },
+			{ Reg::EDI, 0x5F },
+			{ Reg::EBP, 0x5D },
+			{ Reg::ESP, 0x5C },
+		}).at(reg);
 
 		emit8(0x66);
 		emit8(code);
@@ -151,22 +141,17 @@ public:
 
 	void mov(Reg reg, u8 value) throw(EmitterException) {
 		reset_instruction_start();
-		u8 code = 0;
 
-		switch (reg) {
-			case Reg::EAX: code = 0xB8; break;
-			case Reg::EBX: code = 0xBB; break;
-			case Reg::ECX: code = 0xB9; break;
-			case Reg::EDX: code = 0xBA; break;
-			case Reg::ESI: code = 0xBE; break;
-			case Reg::EDI: code = 0xBF; break;
-			case Reg::EBP: code = 0xBD; break;
-			case Reg::ESP: code = 0xBC; break;
-			default:
-				stringstream out;
-				out << "Unknown register '" << reg_name(reg) << "' for mov." << endl;
-				throw EmitterException(out.str());
-		}
+		const u8 code = std::map<Reg, u8>({
+			{ Reg::EAX, 0xB8 },
+			{ Reg::EBX, 0xBB },
+			{ Reg::ECX, 0xB9 },
+			{ Reg::EDX, 0xBA },
+			{ Reg::ESI, 0xBE },
+			{ Reg::EDI, 0xBF },
+			{ Reg::EBP, 0xBD },
+			{ Reg::ESP, 0xBC },
+		}).at(reg);
 
 		emit8(0x66);
 		emit8(code);
