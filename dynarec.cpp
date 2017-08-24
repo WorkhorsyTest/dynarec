@@ -277,7 +277,7 @@ int main() {
 		register u32 ebx_after asm("ebx");
 		cout << "ebx after:  " << ebx_after << endl;
 
-	} catch (EmitterException& e) {
+	} catch (const EmitterException& e) {
 		cout << e.what() << endl;
 		return -1;
 	}
