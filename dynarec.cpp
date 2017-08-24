@@ -268,7 +268,7 @@ int main() {
 		emitter.ret();
 	} catch (const EmitterException& e) {
 		cout << e.what() << endl;
-		return -1;
+		return 1;
 	}
 
 	// Check the value of the register
