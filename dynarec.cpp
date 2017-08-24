@@ -255,32 +255,31 @@ public:
 
 
 int main() {
-	try {
-		// Create the emitter
-		const size_t CODE_SIZE = 255;
-		Emitter emitter(CODE_SIZE);
+	// Create the emitter
+	const size_t CODE_SIZE = 255;
+	Emitter emitter(CODE_SIZE);
 
-		// Add the code
+	// Add the code
+	try {
 		emitter.push(Reg::EBX);
 		emitter.mov(Reg::EBX, 0xE);
 		emitter.pop(Reg::EBX);
 		emitter.ret();
-
-		// Check the value of the register
-		register u32 ebx_before asm("ebx");
-		cout << "ebx before: " << ebx_before << endl;
-		
-		// Run it
-		emitter.execute();
-
-		// Check the value of the register
-		register u32 ebx_after asm("ebx");
-		cout << "ebx after:  " << ebx_after << endl;
-
 	} catch (const EmitterException& e) {
 		cout << e.what() << endl;
 		return -1;
 	}
+
+	// Check the value of the register
+	register u32 ebx_before asm("ebx");
+	cout << "ebx before: " << ebx_before << endl;
+
+	// Run it
+	emitter.execute();
+
+	// Check the value of the register
+	register u32 ebx_after asm("ebx");
+	cout << "ebx after:  " << ebx_after << endl;
 
 	return 0;
 }
