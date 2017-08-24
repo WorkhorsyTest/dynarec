@@ -240,8 +240,8 @@ public:
 		cout << "0x" << hex << (u32) start << "   ";
 
 		// Print Instruction
-		for(size_t i=start; i<end; i++) {
-			if(_code[i] <= 0xF) cout << '0';
+		for (size_t i=start; i<end; i++) {
+			if (_code[i] <= 0xF) cout << '0';
 			cout << hex << (u32) _code[i];
 		}
 	}
