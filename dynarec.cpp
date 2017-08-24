@@ -123,7 +123,7 @@ class Emitter {
 
 public:
 	Emitter(const size_t code_size) :
-		_code(NULL),
+		_code(nullptr),
 		_CODE_SIZE(code_size),
 		_code_index(0),
 		_instruction_start(0) {
@@ -131,7 +131,7 @@ public:
 		// Allocate memory to hold the code. The mmap function is needed 
 		// to give us permission to run code from inside the code block.
 		_code = (u8*) mmap(
-					NULL,
+					nullptr,
 					_CODE_SIZE,
 					PROT_EXEC | PROT_READ | PROT_WRITE,
 					MAP_PRIVATE | MAP_ANONYMOUS,
@@ -140,9 +140,9 @@ public:
 	}
 
 	~Emitter() {
-		if (_code != NULL) {
+		if (_code != nullptr) {
 			munmap(_code, _CODE_SIZE);
-			_code = NULL;
+			_code = nullptr;
 		}
 	}
 
